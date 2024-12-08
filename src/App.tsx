@@ -1,5 +1,6 @@
 import styles from './app.module.css';
-import { useEffect, useRef, useState } from 'react';
+import { useController, useForm } from 'react-hook-form';
+import { useEffect, useState } from 'react';
 
 type FormData = {
 	email: string;
@@ -8,96 +9,113 @@ type FormData = {
 };
 
 const App: React.FC = () => {
-	const [form, setForm] = useState<FormData>({
-		email: '',
-		password: '',
-		password_repeat: '',
+	const [isFormValid, setIsFormValid] = useState<boolean>(true);
+	const { handleSubmit, control } = useForm<FormData>({ mode: 'onChange' });
+
+	const { field: emailField, fieldState: emailFieldState } = useController({
+		name: 'email',
+		control,
+		defaultValue: '',
+		rules: {
+			required: 'Поле обязательно',
+			pattern: { value: /^\S+@\S+\.\S+$/, message: 'Введите корректный email' },
+		},
 	});
-	const [isFormValid, setIsFormValid] = useState<boolean>(false);
-	const [errors, setErrors] = useState<FormData>({
-		email: '',
-		password: '',
-		password_repeat: '',
+
+	const { field: passwordField, fieldState: passwordFieldState } = useController({
+		name: 'password',
+		control,
+		defaultValue: '',
+		rules: {
+			required: 'Поле обязательно',
+			minLength: { value: 8, message: 'Минимальное количество 8 символов' },
+		},
 	});
-	const buttonRef = useRef<HTMLButtonElement>(null);
+
+	const { field: passwordRepeatField, fieldState: passwordRepeatFieldState } =
+		useController({
+			name: 'password_repeat',
+			control,
+			defaultValue: '',
+			rules: {
+				required: 'Поле обязательно',
+				validate: (value) =>
+					value === passwordField.value || 'Пароли не совпадают.',
+			},
+		});
+
+	const onSubmit = (data: FormData) => {
+		console.log(data);
+	};
 
 	useEffect(() => {
-		const emailValid = /^\S+@\S+\.\S+$/.test(form.email);
+		const isEmailFieldValid = !emailFieldState.isDirty
+			? true
+			: !!emailFieldState.error;
 
-		const passwordValid = form.password.length > 7;
+		const isPasswordFieldValid = !passwordFieldState.isDirty
+			? true
+			: !!passwordFieldState.error;
 
-		const passwordRepeatValid =
-			passwordValid && form.password === form.password_repeat;
-		emailValid && passwordValid && passwordRepeatValid ? setIsFormValid(true) : null;
+		const isPasswordRepeatFieldValid = !passwordRepeatFieldState.isDirty
+			? true
+			: !!passwordRepeatFieldState.error;
 
-		const _errors: FormData = {
-			email: !emailValid ? 'Введите корректный email' : '',
-			password: !passwordValid ? 'Пароль должен быть от 8 символов' : '',
-			password_repeat: !passwordRepeatValid ? 'Пароли должны совпадать' : '',
-		};
-		setErrors(_errors);
+		!isEmailFieldValid && !isPasswordFieldValid && !isPasswordRepeatFieldValid
+			? setIsFormValid(false)
+			: setIsFormValid(true);
+	}, [emailFieldState, passwordFieldState, passwordRepeatFieldState]);
 
-		const _isFormValid = emailValid && passwordValid && passwordRepeatValid;
-		if (_isFormValid) {
-			setIsFormValid(true);
-			setTimeout(() => {
-				buttonRef?.current?.focus();
-			}, 0);
-		}
-	}, [form.email, form.password, form.password_repeat]);
-
-	const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-		e.preventDefault();
-		console.log(form);
-	};
 	return (
 		<>
 			<div>
 				<h1 style={{ textAlign: 'center' }}>Регистрация пользователя</h1>
 			</div>
-			<form onSubmit={onSubmit} className={styles.form}>
+			<form onSubmit={handleSubmit(onSubmit)} className={styles.form}>
 				<label className={styles.label}>
 					Email:{' '}
 					<input
-						type={'email'}
+						{...emailField}
 						placeholder={'Введите свой email'}
-						value={form.email}
-						onChange={({ target }) =>
-							setForm({ ...form, email: target.value })
-						}
 						className={styles.input}
 					/>
-					<span style={{ color: 'red' }}>{errors.email}</span>
+					{emailFieldState.error && (
+						<span style={{ color: 'red' }}>
+							{emailFieldState.error.message}
+						</span>
+					)}
 				</label>
-
 				<label className={styles.label}>
 					Пароль:{' '}
 					<input
 						type={'password'}
-						placeholder={'Введите пароль'}
-						value={form.password}
-						onChange={({ target }) =>
-							setForm({ ...form, password: target.value })
-						}
+						{...passwordField}
+						placeholder={'Введите свой пароль'}
 						className={styles.input}
 					/>
-					<span style={{ color: 'red' }}>{errors.password}</span>
+					{passwordFieldState.error && (
+						<span style={{ color: 'red' }}>
+							{passwordFieldState.error.message}
+						</span>
+					)}
 				</label>
 
 				<label className={styles.label}>
-					Повторите пароль:
+					Повторите пароль:{' '}
 					<input
 						type={'password'}
+						{...passwordRepeatField}
 						placeholder={'Повторите пароль'}
-						value={form.password_repeat}
-						onChange={({ target }) =>
-							setForm({ ...form, password_repeat: target.value })
-						}
 						className={styles.input}
 					/>
-					<span style={{ color: 'red' }}>{errors.password_repeat}</span>
+					{passwordRepeatFieldState.error && (
+						<span style={{ color: 'red' }}>
+							{passwordRepeatFieldState.error.message}
+						</span>
+					)}
 				</label>
-				<button type={'submit'} ref={buttonRef} disabled={!isFormValid}>
+
+				<button type={'submit'} disabled={isFormValid}>
 					Зарегестрироваться
 				</button>
 			</form>
