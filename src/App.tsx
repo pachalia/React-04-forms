@@ -1,6 +1,5 @@
 import styles from './app.module.css';
 import { useController, useForm } from 'react-hook-form';
-import { useEffect, useState } from 'react';
 
 type FormData = {
 	email: string;
@@ -9,8 +8,11 @@ type FormData = {
 };
 
 const App: React.FC = () => {
-	const [isFormValid, setIsFormValid] = useState<boolean>(true);
-	const { handleSubmit, control } = useForm<FormData>({ mode: 'onChange' });
+	const {
+		handleSubmit,
+		control,
+		formState: { isValid },
+	} = useForm<FormData>({ mode: 'onChange' });
 
 	const { field: emailField, fieldState: emailFieldState } = useController({
 		name: 'email',
@@ -47,24 +49,6 @@ const App: React.FC = () => {
 	const onSubmit = (data: FormData) => {
 		console.log(data);
 	};
-
-	useEffect(() => {
-		const isEmailFieldValid = !emailFieldState.isDirty
-			? true
-			: !!emailFieldState.error;
-
-		const isPasswordFieldValid = !passwordFieldState.isDirty
-			? true
-			: !!passwordFieldState.error;
-
-		const isPasswordRepeatFieldValid = !passwordRepeatFieldState.isDirty
-			? true
-			: !!passwordRepeatFieldState.error;
-
-		!isEmailFieldValid && !isPasswordFieldValid && !isPasswordRepeatFieldValid
-			? setIsFormValid(false)
-			: setIsFormValid(true);
-	}, [emailFieldState, passwordFieldState, passwordRepeatFieldState]);
 
 	return (
 		<>
@@ -115,7 +99,7 @@ const App: React.FC = () => {
 					)}
 				</label>
 
-				<button type={'submit'} disabled={isFormValid}>
+				<button type={'submit'} disabled={!isValid}>
 					Зарегестрироваться
 				</button>
 			</form>
